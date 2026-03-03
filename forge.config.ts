@@ -74,6 +74,14 @@ const config: ForgeConfig = {
       platforms: ['win32', 'darwin', 'linux'],
     },
     {
+      name: '@electron-forge/maker-squirrel',
+      platforms: ['win32'],
+      config: {
+        name: 'meerako-lead-generator',
+        exe: 'Meerako Lead Generator.exe',
+      },
+    },
+    {
       name: '@electron-forge/maker-dmg',
       platforms: ['darwin'],
       config: {},
