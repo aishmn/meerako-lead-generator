@@ -78,7 +78,7 @@ const config: ForgeConfig = {
       platforms: ['win32'],
       config: {
         name: 'meerako-lead-generator',
-        exe: 'Meerako Lead Generator.exe',
+        exe: 'meerako-lead-generator.exe',
       },
     },
     {
