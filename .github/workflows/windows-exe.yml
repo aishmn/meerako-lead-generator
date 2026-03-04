@@ -1,4 +1,4 @@
-name: Build Windows EXE
+name: Build Windows Portable EXE
 
 on:
   workflow_dispatch:
@@ -23,14 +23,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Windows installer
-        run: npm run make
+      - name: Build single-file Windows EXE
+        run: npm run dist:win:portable
+
+      - name: List generated artifacts
+        run: Get-ChildItem -Path dist -Recurse
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: meerako-lead-generator-windows-x64
-          path: |
-            out/make/squirrel.windows/x64/**/*
-            out/make/zip/win32/x64/*.zip
+          name: meerako-lead-generator-portable-windows-x64
+          path: dist/*.exe
           if-no-files-found: error

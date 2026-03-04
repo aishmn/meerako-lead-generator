@@ -50,6 +50,16 @@ leadforge-pro/
    npm run make
    ```
 
+## Windows Single-File Build
+
+To generate one portable `.exe` for Windows (no installer wizard required):
+
+```bash
+npm run dist:win:portable
+```
+
+The output file is created in `dist/*.exe`.
+
 ## Key Runtime Notes
 
 - On first launch, the app auto-seeds 25 realistic leads, templates, tasks, and history.

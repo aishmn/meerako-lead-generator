@@ -7,7 +7,9 @@ import fs from 'node:fs';
 
 // Native modules that must be present in the package at runtime.
 // better-sqlite3 uses 'bindings' to locate its .node file.
-const NATIVE_RUNTIME_MODULES = ['better-sqlite3', 'bindings'];
+const NATIVE_RUNTIME_MODULES = ['better-sqlite3', 'bindings', 'file-uri-to-path'];
+const MIGRATIONS_DIR = path.join('db', 'migrations');
+const RENDERER_DIR_IN_PACKAGE = path.join('.vite', 'renderer');
 
 function copyDir(src: string, dst: string) {
   fs.mkdirSync(dst, { recursive: true });
@@ -53,14 +55,44 @@ const config: ForgeConfig = {
         }
       }
 
-      // 2. For Windows builds: replace the macOS .node with the Windows prebuild
+      // 2. Copy SQL migrations so packaged apps can initialize the DB on first run.
+      const migrationsSrc = path.join(projectRoot, MIGRATIONS_DIR);
+      const migrationsDst = path.join(buildPath, MIGRATIONS_DIR);
+      if (fs.existsSync(migrationsSrc)) {
+        console.log('[forge] Copying DB migrations into package…');
+        copyDir(migrationsSrc, migrationsDst);
+      } else {
+        console.warn(`[forge] DB migrations directory not found at ${migrationsSrc}`);
+      }
+
+      // 3. Copy renderer bundles where main process expects them.
+      const rendererSrcCandidates = [
+        path.join(projectRoot, '.vite', 'renderer'),
+        path.join(projectRoot, 'src', 'renderer', '.vite', 'renderer'),
+      ];
+      const rendererSrc = rendererSrcCandidates.find((candidate) => fs.existsSync(candidate));
+      if (!rendererSrc) {
+        throw new Error(`Renderer build output not found. Checked:\n${rendererSrcCandidates.join('\n')}`);
+      }
+      const rendererDst = path.join(buildPath, RENDERER_DIR_IN_PACKAGE);
+      console.log(`[forge] Copying renderer bundles from ${rendererSrc}…`);
+      copyDir(rendererSrc, rendererDst);
+
+      // 4. For Windows builds: ensure the Electron-targeted .node prebuild is used.
       if (platform === 'win32') {
         const sqlite3Dir = path.join(buildPath, 'node_modules', 'better-sqlite3');
-        const prebuildBin = path.join(projectRoot, 'node_modules', '.bin', 'prebuild-install');
+        const prebuildCliCandidates = [
+          path.join(projectRoot, 'node_modules', 'prebuild-install', 'bin.js'),
+          path.join(projectRoot, 'node_modules', 'better-sqlite3', 'node_modules', 'prebuild-install', 'bin.js'),
+        ];
+        const prebuildCli = prebuildCliCandidates.find((candidate) => fs.existsSync(candidate));
+        if (!prebuildCli) {
+          throw new Error(`prebuild-install bin.js not found. Checked:\n${prebuildCliCandidates.join('\n')}`);
+        }
 
         console.log(`[forge] Downloading Windows better-sqlite3 prebuild (Electron ${electronVersion}, ${arch})…`);
         execSync(
-          `"${prebuildBin}" --runtime=electron --target=${electronVersion} --platform=win32 --arch=${arch} --tag-prefix=v --force`,
+          `"${process.execPath}" "${prebuildCli}" --runtime=electron --target=${electronVersion} --platform=win32 --arch=${arch} --tag-prefix=v --force`,
           { cwd: sqlite3Dir, stdio: 'inherit' }
         );
         console.log('[forge] Windows native binary ready.');
@@ -72,6 +104,7 @@ const config: ForgeConfig = {
     {
       name: '@electron-forge/maker-zip',
       platforms: ['win32', 'darwin', 'linux'],
+      config: {},
     },
     {
       name: '@electron-forge/maker-squirrel',

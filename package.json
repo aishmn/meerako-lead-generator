@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "electron-forge start",
     "build": "electron-forge package",
+    "package:win": "electron-forge package --platform=win32 --arch=x64",
     "make": "electron-forge make",
     "make:win": "electron-forge make --platform=win32 --arch=x64",
     "make:win:mac": "mkdir -p .wine-forge && PATH=\"$(pwd)/scripts:$PATH\" WINEPREFIX=\"$(pwd)/.wine-forge\" WINEDLLOVERRIDES=\"winemenubuilder.exe=d\" WINEDEBUG=-all electron-forge make --platform=win32 --arch=x64",
@@ -17,13 +18,21 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "dist:win": "electron-builder --win"
+    "dist:win": "npm run dist:win:portable",
+    "dist:win:portable": "npm run package:win && electron-builder --win portable --x64 --prepackaged \"out/Meerako Lead Generator-win32-x64\""
   },
   "build": {
-    "appId": "com.yourcompany.yourapp",
-    "productName": "YourApp",
+    "appId": "com.meerako.leadgenerator",
+    "productName": "Meerako Lead Generator",
+    "executableName": "meerako-lead-generator",
     "win": {
-      "target": ["nsis"]
+      "artifactName": "meerako-lead-generator-${version}-portable-${arch}.${ext}",
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
     }
   },
   "config": {},
