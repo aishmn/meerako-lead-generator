@@ -6,6 +6,7 @@ import { Header } from './components/header';
 import { QuickAddLeadSheet } from './components/quick-add-lead-sheet';
 import { GlobalSearchDialog } from './components/global-search-dialog';
 import { LeadDetailDrawer } from './components/lead-detail-drawer';
+import { ErrorBoundary } from './components/error-boundary';
 import { DashboardPage } from './pages/dashboard-page';
 import { FindLeadsPage } from './pages/find-leads-page';
 import { MyLeadsPage } from './pages/my-leads-page';
@@ -51,7 +52,9 @@ export default function App() {
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
         <main className="min-w-0 flex-1 overflow-auto">
-          <ActivePage />
+          <ErrorBoundary section={section}>
+            <ActivePage />
+          </ErrorBoundary>
         </main>
       </div>
       <QuickAddLeadSheet />

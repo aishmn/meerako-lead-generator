@@ -14,11 +14,14 @@ let mainWindow: BrowserWindow | null = null;
 const runningUnderWine = Boolean(
   process.env.WINEPREFIX || process.env.WINEDLLOVERRIDES || process.env.WINELOADERNOEXEC
 );
+const forceSoftwareRendering = app.isPackaged && process.env.MEERAKO_ENABLE_GPU !== '1';
 
-if (process.env.MEERAKO_DISABLE_GPU === '1' || runningUnderWine) {
+if (process.env.MEERAKO_DISABLE_GPU === '1' || runningUnderWine || forceSoftwareRendering) {
   app.disableHardwareAcceleration();
   app.commandLine.appendSwitch('disable-gpu');
   app.commandLine.appendSwitch('disable-gpu-compositing');
+  app.commandLine.appendSwitch('use-angle', 'swiftshader');
+  app.commandLine.appendSwitch('in-process-gpu');
 }
 
 const createWindow = async (): Promise<void> => {
@@ -68,13 +71,33 @@ const createWindow = async (): Promise<void> => {
       void mainWindow.webContents.executeJavaScript(
         `(() => {
           const root = document.getElementById('root');
+          const rootHtml = root?.innerHTML ?? '';
+          const bodyStyle = window.getComputedStyle(document.body);
+          const rootStyle = root ? window.getComputedStyle(root) : null;
           return {
             href: window.location.href,
             hasRoot: Boolean(root),
-            rootLen: (root?.innerHTML ?? '').trim().length
+            rootLen: rootHtml.trim().length,
+            rootSnippet: rootHtml.slice(0, 220),
+            bodyBg: bodyStyle.backgroundColor,
+            bodyOpacity: bodyStyle.opacity,
+            rootDisplay: rootStyle?.display ?? null,
+            rootVisibility: rootStyle?.visibility ?? null,
+            rootOpacity: rootStyle?.opacity ?? null
           };
         })();`
-      ).then((state: { href: string; hasRoot: boolean; rootLen: number }) => {
+      ).then((state: {
+        href: string;
+        hasRoot: boolean;
+        rootLen: number;
+        rootSnippet: string;
+        bodyBg: string;
+        bodyOpacity: string;
+        rootDisplay: string | null;
+        rootVisibility: string | null;
+        rootOpacity: string | null;
+      }) => {
+        log.info('[renderer] post-load state', state);
         if (state.hasRoot && state.rootLen === 0) {
           log.error(`[renderer] root remained empty after load: ${state.href}`);
           void mainWindow?.loadURL(

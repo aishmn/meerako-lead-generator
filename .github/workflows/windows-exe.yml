@@ -26,6 +26,44 @@ jobs:
       - name: Build single-file Windows EXE
         run: npm run dist:win:portable
 
+      - name: Smoke test on Windows runner
+        shell: pwsh
+        run: |
+          $logPath = Join-Path $env:APPDATA "Meerako Lead Generator\logs\main.log"
+          if (Test-Path $logPath) { Remove-Item $logPath -Force }
+
+          $exe = Get-ChildItem -Path dist -Filter *.exe | Select-Object -First 1
+          if (-not $exe) { throw "Portable EXE not found in dist/" }
+          Write-Host "Launching $($exe.FullName)"
+
+          $proc = Start-Process -FilePath $exe.FullName -PassThru
+          Start-Sleep -Seconds 12
+
+          if (-not $proc.HasExited) {
+            Stop-Process -Id $proc.Id -Force
+          }
+
+          if (-not (Test-Path $logPath)) {
+            throw "Smoke test failed: main log not created at $logPath"
+          }
+
+          $log = Get-Content -Path $logPath -Raw
+          if ($log -notmatch "\[renderer\] post-load state") {
+            throw "Smoke test failed: renderer post-load state not found in log."
+          }
+
+          $m = [regex]::Match($log, "rootLen:\s*(\d+)")
+          if (-not $m.Success) {
+            throw "Smoke test failed: rootLen not found in renderer post-load state."
+          }
+
+          $rootLen = [int]$m.Groups[1].Value
+          if ($rootLen -le 0) {
+            throw "Smoke test failed: renderer rootLen <= 0."
+          }
+
+          Write-Host "Smoke test passed (rootLen=$rootLen)."
+
       - name: List generated artifacts
         run: Get-ChildItem -Path dist -Recurse
 

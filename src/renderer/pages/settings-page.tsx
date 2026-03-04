@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,12 +19,12 @@ export const SettingsPage = () => {
   const [theme, setTheme]     = useState<'dark' | 'light'>('dark');
 
   // Sync form when settings load
-  useState(() => {
+  useEffect(() => {
     if (settings) {
       setAppName(settings.general.appName);
       setTheme(settings.general.theme);
     }
-  });
+  }, [settings]);
 
   const saveMutation = useMutation({
     mutationFn: (payload: Partial<AppSettings>) =>
